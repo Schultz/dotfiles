@@ -19,7 +19,8 @@ set -l packages \
     kubectl \
     lazygit \
     lazydocker \
-    alacritty
+    alacritty \
+    eza
 
 # ── helpers ─────────────────────────────────────────────────────────────
 
@@ -69,6 +70,8 @@ function __dot_install
             curl -sS https://starship.rs/install.sh | sh -s -- -y
         case zellij
             __cargo_install zellij
+        case eza
+            __cargo_install eza
         case fnm
             curl -fsSL https://fnm.vercel.app/install | bash
         case kubectl

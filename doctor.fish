@@ -9,6 +9,7 @@ set -l checks \
     fnm kubectl \
     lazygit lazydocker \
     alacritty \
+    eza \
     fisher
 
 function __have
