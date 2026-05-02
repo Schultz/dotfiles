@@ -1,0 +1,17 @@
+# Machine-specific or generated state — never commit
+fish/.config/fish/fish_variables
+fish/.config/fish/fish_history
+fish/.config/fish/.fishd.*
+
+# fzf.fish search-history side files
+fish/.config/fish/_fzf_search_*history*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor state
+*.swp
+*.swo
+.idea/
+.vscode/
