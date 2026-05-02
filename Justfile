@@ -46,3 +46,11 @@ doctor:
 # Set fish as the default login shell for the current user.
 chsh:
     sh ./bootstrap.sh chsh-only
+
+# Remove regenerable files at ~/.config/fish that block stow, then re-stow.
+unstick:
+    rm -f ~/.config/fish/fish_variables \
+          ~/.config/fish/fish_plugins \
+          ~/.config/fish/completions/fisher.fish \
+          ~/.config/fish/functions/fisher.fish
+    just stow

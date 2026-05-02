@@ -94,14 +94,20 @@ for pkg in $packages
     __dot_install $pkg
 end
 
-__log "Bootstrapping fisher (fish plugin manager)"
-if not __have fisher
-    curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
-    fisher install jorgebucaran/fisher
+# Stow MUST run before fisher install/update — otherwise fisher writes its
+# files to a real ~/.config/fish/ and stow then conflicts with them. We also
+# pre-delete known regenerable files at the target so a stale state from a
+# previous bad run can't block stow.
+__log "Cleaning regenerable conflicts at the stow target"
+for f in \
+    $HOME/.config/fish/fish_variables \
+    $HOME/.config/fish/fish_plugins \
+    $HOME/.config/fish/completions/fisher.fish \
+    $HOME/.config/fish/functions/fisher.fish
+    if test -f $f; and not test -L $f
+        rm -f $f
+    end
 end
-
-__log "Syncing fisher plugins from fish_plugins"
-fisher update
 
 __log "Stowing dotfiles"
 set -l targets
@@ -116,6 +122,16 @@ if test (count $targets) -gt 0
 else
     __warn "Nothing to stow yet — run 'just migrate' first"
 end
+
+# Now fisher writes through the symlinks into the repo.
+__log "Bootstrapping fisher (fish plugin manager)"
+if not __have fisher
+    curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+    fisher install jorgebucaran/fisher
+end
+
+__log "Syncing fisher plugins from fish_plugins"
+fisher update
 
 __log "Verifying tools (doctor)"
 fish $here/doctor.fish

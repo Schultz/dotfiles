@@ -41,4 +41,18 @@ if not test -d $here/.git
     git -C $here commit -q -m "import existing dotfiles"
 end
 
-__log "Migration complete. Now run: just install   (or: just stow)"
+# Re-stow immediately so the live ~/.config/{fish,alacritty} symlinks are
+# in place before any new fish process can recreate fresh files.
+__log "Stowing migrated packages"
+set -l targets
+for d in $packages
+    if test -d $here/$d
+        set -a targets $d
+    end
+end
+if test (count $targets) -gt 0
+    stow --dir=$here --target=$HOME --restow $targets
+    __log "Linked: $targets"
+end
+
+__log "Migration complete. Now run: just install"

@@ -46,5 +46,7 @@ set -gx PROJECTS_DIR $HOME/Projects
 set -gx FZF_DEFAULT_COMMAND "fd --type f"
 set -gx FZF_CTRL_T_COMMAND $FZF_DEFAULT_COMMAND
 
-#velero completion fish | source
+if command -q velero
+    velero completion fish | source
+end
 
