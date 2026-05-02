@@ -111,7 +111,7 @@ end
 
 __log "Stowing dotfiles"
 set -l targets
-for d in alacritty fish
+for d in alacritty fish zellij
     if test -d $here/$d
         set -a targets $d
     end

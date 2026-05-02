@@ -4,7 +4,7 @@
 # migrated.
 
 set -l here (status dirname)
-set -l packages fish alacritty
+set -l packages fish alacritty zellij
 
 function __log; set_color cyan; echo "==> $argv"; set_color normal; end
 function __warn; set_color yellow; echo "!! $argv"; set_color normal; end

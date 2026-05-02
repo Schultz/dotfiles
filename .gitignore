@@ -6,6 +6,10 @@ fish/.config/fish/.fishd.*
 # fzf.fish search-history side files
 fish/.config/fish/_fzf_search_*history*
 
+# zellij backup files (auto-generated)
+zellij/.config/zellij/*.bak
+zellij/.config/zellij/*.bak.*
+
 # OS junk
 .DS_Store
 Thumbs.db
