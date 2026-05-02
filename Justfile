@@ -25,15 +25,15 @@ migrate:
 
 # (Re-)create the symlinks from this repo into $HOME.
 stow:
-    stow --dir={{justfile_directory()}} --target=$HOME --restow alacritty fish zellij
+    stow --dir={{justfile_directory()}} --target=$HOME --restow alacritty fish zellij nvim
 
 # Remove all symlinks for this repo from $HOME.
 unstow:
-    stow --dir={{justfile_directory()}} --target=$HOME --delete alacritty fish zellij
+    stow --dir={{justfile_directory()}} --target=$HOME --delete alacritty fish zellij nvim
 
 # Show what stow *would* do without changing anything.
 stow-dry:
-    stow --dir={{justfile_directory()}} --target=$HOME --restow --no --verbose=2 alacritty fish zellij
+    stow --dir={{justfile_directory()}} --target=$HOME --restow --no --verbose=2 alacritty fish zellij nvim
 
 # Sync fish plugins listed in fish/.config/fish/fish_plugins.
 plugins:
