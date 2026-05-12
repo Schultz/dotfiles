@@ -56,13 +56,9 @@ if status is-interactive
 end
 
 
-# set -gx NVM_DIR "/Users/robs/Library/Application Support/Herd/config/nvm"
-
-set -gx KUBECONFIG "/Users/robs/.kube/config:/Users/robs/.kube/pom-rke2.yaml:/Users/robs/.kube/pom-k3s.yaml"
+if test (uname) = Darwin
+    set -gx KUBECONFIG "$HOME/.kube/config:$HOME/.kube/pom-rke2.yaml:$HOME/.kube/pom-k3s.yaml"
+end
 
 alias lg="lazygit"
 alias ldocker="lazydocker"
-# Added by LM Studio CLI (lms)
-set -gx PATH $PATH /Users/robs/.lmstudio/bin
-# End of LM Studio CLI section
-
