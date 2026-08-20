@@ -19,3 +19,6 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+# Claude Code local state — session-specific, not portable across machines
+.claude/
