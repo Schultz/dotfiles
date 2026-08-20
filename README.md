@@ -34,6 +34,14 @@ just unstow    # remove symlinks
    in `install.fish`.
 3. Add an install rule for `foo` in `install.fish` (`__dot_install` switch).
 
+## Skills (Claude Code + Codex, shared)
+
+`skills/<name>/SKILL.md` holds one canonical copy per skill. `just link-skills`
+symlinks each into both `~/.claude/skills/` and `~/.codex/skills/` (plain
+`ln -sfn`, not stow — those dirs already hold real per-tool content, so
+mirroring the whole target dir would conflict). Re-run it after adding a
+skill.
+
 ## What's intentionally not committed
 
 See `.gitignore`. Fisher-installed plugin files live under `fish/.config/fish/{functions,completions,conf.d}/` and *are* committed for now — they'll be overwritten the next time `fisher update` runs, which is fine.
