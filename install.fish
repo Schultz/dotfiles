@@ -37,6 +37,23 @@ function __apt_install
     sudo apt-get install -y $argv
 end
 
+# Steps that failed, reported together at the end so one bad tool doesn't
+# look like a clean run. install.fish exits non-zero when this is non-empty.
+set -g __dot_failures
+
+function __fail
+    set -g __dot_failures $__dot_failures $argv[1]
+    __warn $argv[1]
+end
+
+# Record a non-zero install and pass the status through.
+function __dot_check
+    if test $argv[2] -ne 0
+        __fail "$argv[1]: install exited $argv[2]"
+    end
+    return $argv[2]
+end
+
 function __install_alacritty_dmg
     # Homebrew disabled the alacritty cask on 2026-09-01 because the release
     # build fails the macOS Gatekeeper check, and there is no formula to fall
@@ -69,6 +86,12 @@ function __install_alacritty_dmg
 end
 
 function __cargo_install
+    # cargo shells out to `cc` to link. A minimal Debian has no compiler, so
+    # every cargo build dies with "linker `cc` not found" without this.
+    if not __is_macos; and not __have cc
+        __log "Installing build-essential (cargo needs a C linker)"
+        __apt_install build-essential
+    end
     if not __have cargo
         __log "Installing rustup (for cargo)"
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
@@ -96,6 +119,7 @@ function __dot_install
             case '*'
                 brew install $pkg
         end
+        __dot_check $pkg $status
         return
     end
 
@@ -112,6 +136,9 @@ function __dot_install
         case lsd
             __cargo_install lsd
         case fnm
+            # The fnm installer bails out if unzip is absent, and a minimal
+            # Debian does not ship it.
+            __have unzip; or __apt_install unzip
             curl -fsSL https://fnm.vercel.app/install | bash
         case mise
             curl -fsSL https://mise.run | sh
@@ -129,6 +156,7 @@ function __dot_install
         case '*'
             __warn "No install rule for '$pkg' on Linux — skipping"
     end
+    __dot_check $pkg $status
 end
 
 # ── main ────────────────────────────────────────────────────────────────
@@ -153,6 +181,34 @@ for f in \
     end
 end
 
+# Anything the packages would place that already exists as a real file gets
+# moved aside. Two of these are created by this very script: fish writes a
+# default config.fish the moment install.fish runs, and rustup drops its own
+# unguarded conf.d/rustup.fish during __cargo_install. Either one makes stow
+# abort the whole operation. Back them up rather than delete: this runs
+# unattended against a real $HOME.
+# Takes the repo dir as $argv[1]: fish functions cannot see the script's
+# top-level `set -l here`.
+function __backup_stow_conflicts
+    set -l root $argv[1]
+    set -l stamp (date +%Y%m%d-%H%M%S)
+    set -l moved 0
+    for pkg in $argv[2..-1]
+        for src in (find $root/$pkg -type f)
+            set -l rel (string replace -- "$root/$pkg/" '' $src)
+            set -l dst $HOME/$rel
+            if test -e $dst; and not test -L $dst
+                mv $dst "$dst.pre-stow-$stamp.bak"
+                echo "    backed up $rel -> $rel.pre-stow-$stamp.bak"
+                set moved (math $moved + 1)
+            end
+        end
+    end
+    if test $moved -gt 0
+        __warn "Moved $moved conflicting file(s) aside; originals kept as .pre-stow-$stamp.bak"
+    end
+end
+
 # Break dir-level symlinks left behind by a previous tree-folded stow so the
 # plugin-managed dirs become real directories under ~/.config/fish/. Without
 # this, fisher writes through the symlink back into the repo and conflicts on
@@ -166,11 +222,17 @@ end
 __log "Stowing dotfiles"
 set -l targets (fish $here/packages.fish)
 if test (count $targets) -gt 0
+    __backup_stow_conflicts $here $targets
     # --no-folding forces per-file symlinks so fisher can write into the
     # plugin-managed dirs (functions, completions, conf.d) without those
     # writes leaking back into the repo through a folded dir-symlink.
-    stow --no-folding --dir=$here --target=$HOME --restow $targets
-    __log "Linked: $targets"
+    if stow --no-folding --dir=$here --target=$HOME --restow $targets
+        __log "Linked: $targets"
+    else
+        # stow aborts every package when any one conflicts, so this is not a
+        # partial link. Nothing downstream works without it.
+        __fail "stow failed — $targets not linked, see the conflicts above"
+    end
 else
     __warn "Nothing to stow yet — run 'just migrate' first"
 end
@@ -189,10 +251,18 @@ if not __have fisher
 end
 
 __log "Syncing fisher plugins from fish_plugins"
-fisher update
+fisher update; or __fail "fisher update failed — plugins not installed"
 
 __log "Verifying tools (doctor)"
 fish $here/doctor.fish
 or __warn "Some tools missing — see above"
+
+if set -q __dot_failures[1]
+    __warn "Completed with "(count $__dot_failures)" failure(s):"
+    for f in $__dot_failures
+        echo "    - $f"
+    end
+    exit 1
+end
 
 __log "Done."
