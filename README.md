@@ -19,6 +19,15 @@ cd ~/dotfiles
 just setup     # bootstrap + install
 ```
 
+On a Mac out of the box there is no git to clone with. Running `git` at all
+pops the Xcode Command Line Tools dialog, so accept that, wait for it, then
+clone. `bootstrap.sh` installs git too, but that does not help you get
+`bootstrap.sh` in the first place. If you would rather not wait on the dialog:
+
+```sh
+xcode-select --install
+```
+
 ## Day to day
 
 ```fish

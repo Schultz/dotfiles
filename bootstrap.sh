@@ -63,6 +63,19 @@ fi
 
 case "$os" in
     Darwin)
+        # Homebrew's installer pulls in the Command Line Tools itself, which is
+        # where a working git comes from. Ask for them up front anyway: the
+        # prompt is a GUI dialog this script cannot wait on, so it is better to
+        # stop here with an explanation than to fail somewhere later.
+        #
+        # Test with xcode-select, not `have git`. macOS always ships a
+        # /usr/bin/git stub whose only job is to open that dialog, so
+        # `command -v git` succeeds even on a machine with no tools installed.
+        if ! xcode-select -p >/dev/null 2>&1; then
+            log "Requesting the Xcode Command Line Tools (provides git)"
+            xcode-select --install >/dev/null 2>&1 || true
+            err "Finish the Command Line Tools install in the dialog, then re-run this script."
+        fi
         if ! have brew; then
             log "Installing Homebrew"
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
