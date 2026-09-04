@@ -6,10 +6,12 @@
 
 set -l here (status dirname)
 
-# ── packages ────────────────────────────────────────────────────────────
+# ── tools ───────────────────────────────────────────────────────────────
 # Add or remove freely. Each name maps to install logic in __dot_install.
+# These are programs to install, not stow packages; packages.fish derives
+# those from the repo layout.
 
-set -l packages \
+set -l tools \
     starship \
     fzf \
     tmux \
@@ -35,6 +37,37 @@ function __apt_install
     sudo apt-get install -y $argv
 end
 
+function __install_alacritty_dmg
+    # Homebrew disabled the alacritty cask on 2026-09-01 because the release
+    # build fails the macOS Gatekeeper check, and there is no formula to fall
+    # back to. Install the official GitHub release DMG instead.
+    set -l ver (curl -fsSL https://api.github.com/repos/alacritty/alacritty/releases/latest \
+        | grep '"tag_name"' | cut -d'"' -f4 | string trim --left --chars=v)
+    if test -z "$ver"
+        __warn "alacritty: could not read the latest release version"
+        return 1
+    end
+
+    set -l dmg (mktemp -d)/Alacritty-v$ver.dmg
+    set -l mnt /Volumes/Alacritty
+    if not curl -fsSLo $dmg "https://github.com/alacritty/alacritty/releases/download/v$ver/Alacritty-v$ver.dmg"
+        __warn "alacritty: download failed"
+        return 1
+    end
+
+    hdiutil attach -quiet -nobrowse $dmg; or return 1
+    cp -R $mnt/Alacritty.app /Applications/
+    hdiutil detach -quiet $mnt
+    rm -f $dmg
+
+    # The DMG is quarantined as a download and fails the Gatekeeper check that
+    # got the cask disabled, so macOS refuses to open it. Clearing the
+    # quarantine attribute is the same thing right-click > Open does, and it is
+    # why this is not just `brew install --cask`.
+    __warn "alacritty: clearing the download quarantine so macOS will open it"
+    xattr -dr com.apple.quarantine /Applications/Alacritty.app
+end
+
 function __cargo_install
     if not __have cargo
         __log "Installing rustup (for cargo)"
@@ -56,7 +89,9 @@ function __dot_install
     __log "Installing $pkg"
     if __is_macos
         switch $pkg
-            case alacritty lazygit lazydocker
+            case alacritty
+                __install_alacritty_dmg
+            case lazygit lazydocker
                 brew install --cask $pkg 2>/dev/null; or brew install $pkg
             case '*'
                 brew install $pkg
@@ -99,7 +134,7 @@ end
 # ── main ────────────────────────────────────────────────────────────────
 
 __log "Installing system packages"
-for pkg in $packages
+for pkg in $tools
     __dot_install $pkg
 end
 
@@ -129,12 +164,7 @@ for d in $HOME/.config/fish/functions $HOME/.config/fish/completions $HOME/.conf
 end
 
 __log "Stowing dotfiles"
-set -l targets
-for d in alacritty fish zellij nvim mise
-    if test -d $here/$d
-        set -a targets $d
-    end
-end
+set -l targets (fish $here/packages.fish)
 if test (count $targets) -gt 0
     # --no-folding forces per-file symlinks so fisher can write into the
     # plugin-managed dirs (functions, completions, conf.d) without those

@@ -3,10 +3,6 @@
 # Use fish for recipes that aren't already a shell script.
 set shell := ["fish", "-c"]
 
-# Stow packages tracked in this repo. Entries whose directory doesn't exist
-# yet are skipped at runtime, so a name can be listed before it's migrated.
-packages := "alacritty fish zellij nvim mise"
-
 # Show available recipes.
 default:
     @just --list --unsorted
@@ -23,7 +19,7 @@ bootstrap:
 install:
     fish ./install.fish
 
-# One-time: move existing ~/.config/{fish,alacritty} into this repo.
+# One-time: move existing ~/.config/{fish,zellij,nvim,mise} into this repo.
 migrate:
     fish ./migrate.fish
 
@@ -31,18 +27,18 @@ migrate:
 # fisher's writes don't leak back into the repo through a folded dir symlink.
 [doc("(Re-)create the symlinks from this repo into $HOME.")]
 stow:
-    set -l pkgs; for d in {{packages}}; test -d {{justfile_directory()}}/$d; and set -a pkgs $d; end; \
-        stow --no-folding --dir={{justfile_directory()}} --target=$HOME --restow $pkgs
+    stow --no-folding --dir={{justfile_directory()}} --target=$HOME --restow \
+        (fish {{justfile_directory()}}/packages.fish)
 
 # Remove all symlinks for this repo from $HOME.
 unstow:
-    set -l pkgs; for d in {{packages}}; test -d {{justfile_directory()}}/$d; and set -a pkgs $d; end; \
-        stow --no-folding --dir={{justfile_directory()}} --target=$HOME --delete $pkgs
+    stow --no-folding --dir={{justfile_directory()}} --target=$HOME --delete \
+        (fish {{justfile_directory()}}/packages.fish)
 
 # Show what stow *would* do without changing anything.
 stow-dry:
-    set -l pkgs; for d in {{packages}}; test -d {{justfile_directory()}}/$d; and set -a pkgs $d; end; \
-        stow --no-folding --dir={{justfile_directory()}} --target=$HOME --restow --no --verbose=2 $pkgs
+    stow --no-folding --dir={{justfile_directory()}} --target=$HOME --restow --no --verbose=2 \
+        (fish {{justfile_directory()}}/packages.fish)
 
 # Sync fish plugins listed in fish/.config/fish/fish_plugins.
 plugins:

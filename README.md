@@ -40,9 +40,11 @@ under `$HOME`. So `fish/.config/fish/config.fish` here becomes
 `~/.config/fish/config.fish` on disk, as a symlink pointing back into the repo.
 Edit either path. Same file.
 
-The `packages` variable at the top of `Justfile` holds the list. Names with no
-matching directory get skipped, so a package can be listed before it has been
-migrated.
+`packages.fish` works out which directories those are, so no list needs
+maintaining. A directory counts as a package when it holds at least one
+dotfile or dotdir, which is what mirroring `$HOME` means in practice.
+`skills/` holds neither, so it is left out, and `just link-skills` handles it
+instead.
 
 Every stow call passes `--no-folding`. Without it stow folds. Once every file
 in `~/.config/fish/functions/` comes from this repo, stow throws away that
@@ -89,6 +91,11 @@ the machine.
 Config you wrote: `config.fish`, everything in `conf.d/`, your own functions
 and completions, `fish_plugins`, the nvim lockfile, mise's `config.toml`.
 
+Alacritty has no directory here because it has no config. It reads
+`alacritty.toml` only if you create one, and ships with defaults otherwise.
+Write one at `alacritty/.config/alacritty/alacritty.toml` and `just stow`
+picks it up with no list to edit.
+
 Nothing a tool generates, and nothing that only applies to one machine.
 Fisher's plugin files, `fish_variables`, `fish_history` and `.claude/` are
 either gitignored or never written here any more. `.gitignore` has the list.
@@ -101,11 +108,15 @@ should stay tracked.
 
 1. Make a top-level directory whose layout mirrors `$HOME`. For `~/.config/foo`:
    `dotfiles/foo/.config/foo/...`
-2. Add `foo` to the three lists that have to agree: the `packages` variable at
-   the top of `Justfile`, the loop in `install.fish`, and the one in
-   `migrate.fish`.
-3. Add an install rule for `foo` in `install.fish` (`__dot_install` switch) and
-   to the checks in `doctor.fish`.
+2. Run `just stow`. `packages.fish` picks the directory up on its own.
+3. If `foo` is also a program to install, add it to the `tools` list in
+   `install.fish`, give it an install rule in the `__dot_install` switch, and
+   add it to the checks in `doctor.fish`.
+
+`migrate.fish` keeps a hand-written list, and it is the one place that has to.
+It imports `~/.config/foo` before that directory exists here, so there is
+nothing to derive from. Add the name there only if you want `just migrate` to
+pull an existing config in on another machine.
 
 ## Skills (Claude Code + Codex, shared)
 
