@@ -85,6 +85,42 @@ function __install_alacritty_dmg
     xattr -dr com.apple.quarantine /Applications/Alacritty.app
 end
 
+# Release assets disagree on how to spell the architecture: kubectl uses
+# amd64/arm64, lazygit uses x86_64/arm64, eza uses rust triples. Pick the
+# value for this machine rather than hardcoding one.
+#   __arch_pick <value-for-x86_64> <value-for-arm64>
+function __arch_pick
+    switch (uname -m)
+        case x86_64 amd64
+            echo $argv[1]
+        case aarch64 arm64
+            echo $argv[2]
+        case '*'
+            return 1
+    end
+end
+
+function __install_eza_binary
+    # eza no longer builds from source against its current palette dependency
+    # (error[E0433]: cannot find `lms` in `crate`), so take the release binary.
+    # It also skips needing a Rust toolchain at all.
+    set -l target (__arch_pick x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu)
+    if test -z "$target"
+        __warn "eza: no release binary for architecture "(uname -m)
+        return 1
+    end
+    set -l tmp (mktemp -d)
+    if not curl -fsSLo $tmp/eza.tar.gz \
+        "https://github.com/eza-community/eza/releases/latest/download/eza_$target.tar.gz"
+        __warn "eza: download failed"
+        rm -rf $tmp
+        return 1
+    end
+    tar -xzf $tmp/eza.tar.gz -C $tmp
+    sudo install -m 0755 $tmp/eza /usr/local/bin/eza
+    rm -rf $tmp
+end
+
 function __cargo_install
     # cargo shells out to `cc` to link. A minimal Debian has no compiler, so
     # every cargo build dies with "linker `cc` not found" without this.
@@ -132,7 +168,7 @@ function __dot_install
         case zellij
             __cargo_install zellij
         case eza
-            __cargo_install eza
+            __install_eza_binary
         case lsd
             __cargo_install lsd
         case fnm
@@ -144,11 +180,24 @@ function __dot_install
             curl -fsSL https://mise.run | sh
         case kubectl
             set -l ver (curl -L -s https://dl.k8s.io/release/stable.txt)
-            sudo curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$ver/bin/linux/amd64/kubectl"
+            set -l arch (__arch_pick amd64 arm64)
+            if test -z "$arch"
+                __warn "kubectl: no build for architecture "(uname -m)
+                return 1
+            end
+            sudo curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$ver/bin/linux/$arch/kubectl"
             sudo chmod +x /usr/local/bin/kubectl
         case lazygit
             set -l ver (curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep tag_name | cut -d'"' -f4 | string trim --left -c v)
-            curl -Lo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_"$ver"_Linux_x86_64.tar.gz"
+            set -l arch (__arch_pick x86_64 arm64)
+            if test -z "$arch"
+                __warn "lazygit: no build for architecture "(uname -m)
+                return 1
+            end
+            if not curl -fsSLo /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_"$ver"_linux_$arch.tar.gz"
+                __warn "lazygit: download failed"
+                return 1
+            end
             sudo tar -xf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit
             rm /tmp/lazygit.tar.gz
         case lazydocker
@@ -167,19 +216,20 @@ for pkg in $tools
 end
 
 # Stow MUST run before fisher install/update — otherwise fisher writes its
-# files to a real ~/.config/fish/ and stow then conflicts with them. We also
-# pre-delete known regenerable files at the target so a stale state from a
-# previous bad run can't block stow.
-__log "Cleaning regenerable conflicts at the stow target"
-for f in \
-    $HOME/.config/fish/fish_variables \
-    $HOME/.config/fish/fish_plugins \
-    $HOME/.config/fish/completions/fisher.fish \
-    $HOME/.config/fish/functions/fisher.fish
-    if test -f $f; and not test -L $f
-        rm -f $f
-    end
-end
+# files to a real ~/.config/fish/ and stow then conflicts with them.
+#
+# There is deliberately no pre-delete step here. __backup_stow_conflicts
+# below covers anything that collides, and it preserves the file rather than
+# removing it. The old step also deleted functions/fisher.fish and
+# completions/fisher.fish, which this repo stopped tracking in 3f8cc0b, so
+# they cannot collide with stow at all: deleting them only threw away a
+# working fisher on every run.
+#
+# Never put fish_variables in such a step. It holds the universal variable
+# _fisher_plugins, and since install.fish is itself a fish process, deleting
+# it pulls the universal-variable store out from under the running shell.
+# fisher then commits a truncated fish_plugins into the repo through the stow
+# symlink. `just unstick` avoids it for the same reason.
 
 # Anything the packages would place that already exists as a real file gets
 # moved aside. Two of these are created by this very script: fish writes a
