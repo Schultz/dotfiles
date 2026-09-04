@@ -4,7 +4,7 @@
 #
 # Assumes bootstrap.sh has already run (so fish/git/stow/curl are available).
 
-set -l here (status dirname)
+set -l here (path resolve (status dirname))
 
 # ── tools ───────────────────────────────────────────────────────────────
 # Add or remove freely. Each name maps to install logic in __dot_install.

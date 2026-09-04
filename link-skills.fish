@@ -6,7 +6,11 @@
 # the whole target would conflict. This links one entry per skill instead.
 # install.fish and `just link-skills` both call it.
 
-set -l here (status dirname)
+# path resolve, not a bare (status dirname): that is "." when the script is
+# invoked as `fish ./link-skills.fish`, which install.fish does. ln -sfn then
+# stores "./skills/<name>/" as the link target, relative to ~/.claude/skills,
+# and every link dangles.
+set -l here (path resolve (status dirname))
 
 function __log; set_color cyan; echo "==> $argv"; set_color normal; end
 function __warn; set_color yellow; echo "!! $argv"; set_color normal; end

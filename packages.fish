@@ -10,7 +10,7 @@
 # migrate.fish keeps its own list on purpose: it imports ~/.config/X before
 # the directory exists here, so there is nothing to derive from.
 
-set -l here (status dirname)
+set -l here (path resolve (status dirname))
 
 for d in $here/*/
     # .DS_Store alone does not make a directory a package.
