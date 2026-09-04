@@ -7,7 +7,7 @@ Debian/Ubuntu.
 
 ```fish
 cd ~/dotfiles
-just migrate   # moves existing ~/.config/{fish,zellij,nvim} into this repo
+just migrate   # moves existing ~/.config/{fish,zellij,nvim,mise} into this repo
 just install   # installs deps, bootstraps fisher, stows
 ```
 
@@ -99,10 +99,11 @@ should stay tracked.
 
 ## Adding a new package
 
-1. Make a top-level dir whose layout mirrors `$HOME`. E.g. for `~/.config/foo`:
+1. Make a top-level directory whose layout mirrors `$HOME`. For `~/.config/foo`:
    `dotfiles/foo/.config/foo/...`
-2. Add `foo` to the `packages` variable at the top of `Justfile`, and to the
-   loop in `install.fish`.
+2. Add `foo` to the three lists that have to agree: the `packages` variable at
+   the top of `Justfile`, the loop in `install.fish`, and the one in
+   `migrate.fish`.
 3. Add an install rule for `foo` in `install.fish` (`__dot_install` switch) and
    to the checks in `doctor.fish`.
 
