@@ -10,6 +10,8 @@ set -l checks \
     lazygit lazydocker \
     alacritty \
     eza \
+    lsd \
+    mise \
     fisher
 
 function __have

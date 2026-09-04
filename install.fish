@@ -20,7 +20,9 @@ set -l packages \
     lazygit \
     lazydocker \
     alacritty \
-    eza
+    eza \
+    lsd \
+    mise
 
 # ── helpers ─────────────────────────────────────────────────────────────
 
@@ -72,8 +74,12 @@ function __dot_install
             __cargo_install zellij
         case eza
             __cargo_install eza
+        case lsd
+            __cargo_install lsd
         case fnm
             curl -fsSL https://fnm.vercel.app/install | bash
+        case mise
+            curl -fsSL https://mise.run | sh
         case kubectl
             set -l ver (curl -L -s https://dl.k8s.io/release/stable.txt)
             sudo curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$ver/bin/linux/amd64/kubectl"
@@ -112,25 +118,41 @@ for f in \
     end
 end
 
+# Break dir-level symlinks left behind by a previous tree-folded stow so the
+# plugin-managed dirs become real directories under ~/.config/fish/. Without
+# this, fisher writes through the symlink back into the repo and conflicts on
+# the next install.
+for d in $HOME/.config/fish/functions $HOME/.config/fish/completions $HOME/.config/fish/conf.d
+    if test -L $d
+        rm $d
+    end
+end
+
 __log "Stowing dotfiles"
 set -l targets
-for d in alacritty fish zellij nvim
+for d in alacritty fish zellij nvim mise
     if test -d $here/$d
         set -a targets $d
     end
 end
 if test (count $targets) -gt 0
-    stow --dir=$here --target=$HOME --restow $targets
+    # --no-folding forces per-file symlinks so fisher can write into the
+    # plugin-managed dirs (functions, completions, conf.d) without those
+    # writes leaking back into the repo through a folded dir-symlink.
+    stow --no-folding --dir=$here --target=$HOME --restow $targets
     __log "Linked: $targets"
 else
     __warn "Nothing to stow yet — run 'just migrate' first"
 end
 
-# Now fisher writes through the symlinks into the repo.
 __log "Bootstrapping fisher (fish plugin manager)"
+# Note: do NOT run `fisher install jorgebucaran/fisher` here — that rewrites
+# fish_plugins to reflect only what's currently installed (just fisher),
+# wiping the other plugins listed in the repo's fish_plugins. Sourcing
+# fisher.fish gives us the function in this session, and `fisher update`
+# below reads fish_plugins and installs everything listed (including fisher).
 if not __have fisher
     curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
-    fisher install jorgebucaran/fisher
 end
 
 __log "Syncing fisher plugins from fish_plugins"
