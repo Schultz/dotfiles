@@ -60,40 +60,29 @@ before re-stowing, so an existing machine repairs itself on the next
 
 `fish/.config/fish/fish_plugins` lists which plugins to install. The plugins'
 own files are not committed. Fisher downloads them at install time. Think
-`package.json`, not `node_modules`.
+`package.json`, not `node_modules`. To add one, add the line and run
+`just plugins`, which reconciles the machine against the file: listed but
+missing gets installed, installed but unlisted gets removed.
 
-`just plugins` runs `fisher update`, which reconciles the machine against that
-file. Listed but missing gets installed. Installed but unlisted gets removed.
-To add a plugin, add the line and run `just plugins`.
+Watch one thing, which has cost this repo twice. Fisher rewrites
+`fish_plugins` after every command, keeping only what the universal variable
+`_fisher_plugins` says is installed. The file is symlinked into the repo, so
+when `_fisher_plugins` is partly populated the rewrite truncates the manifest
+in git. Two pieces of code prevent this and both look like dead weight.
+`install.fish` omits `fisher install jorgebucaran/fisher`, which merges the
+file in only when `_fisher_plugins` is empty and truncates when it is partly
+populated. `just unstick` leaves `fish_variables` alone, which is where
+`_fisher_plugins` lives. Leave both as they are.
 
-Now the part that has cost this repo twice. After every command, fisher
-rewrites `fish_plugins` from `_fisher_plugins`, a universal variable holding
-what it believes is installed, dropping any line it cannot account for.
-`fish_plugins` is symlinked into the repo, so that rewrite arrives as a git
-change. If `_fisher_plugins` is only partly populated, say it lists fisher and
-nothing else, the next fisher command quietly truncates `fish_plugins` to match
-and the other plugins vanish from git.
-
-Two things prevent that, and neither is safe to tidy away.
-
-`install.fish` never runs `fisher install jorgebucaran/fisher`. That command
-merges in the file's contents only when `_fisher_plugins` is completely empty.
-With fisher alone recorded, it truncates instead. Sourcing `fisher.fish` and
-letting `fisher update` read the manifest avoids it.
-
-`just unstick` never deletes `~/.config/fish/fish_variables`. `_fisher_plugins`
-lives in that file, and erasing it while fisher stays installed produces
-exactly the partial state above.
-
-If `fish_plugins` ever shrinks on its own, restore it before reinstalling:
+Recovering a truncated manifest, in this order:
 
 ```fish
 git checkout HEAD -- fish/.config/fish/fish_plugins
 just plugins
 ```
 
-The order matters. Run `just plugins` first and nothing happens, because the
-truncated file already agrees with the machine.
+Reversing the order does nothing, since the truncated file already agrees with
+the machine.
 
 ### What gets committed
 
