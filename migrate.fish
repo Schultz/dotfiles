@@ -1,10 +1,10 @@
 #!/usr/bin/env fish
-# migrate.fish — one-time: move existing ~/.config/{fish,alacritty} into the
+# migrate.fish — one-time: move existing ~/.config/{fish,zellij,nvim} into the
 # dotfiles repo so stow can manage them. Idempotent: skips packages already
 # migrated.
 
 set -l here (status dirname)
-set -l packages fish alacritty zellij nvim
+set -l packages fish zellij nvim mise
 
 function __log; set_color cyan; echo "==> $argv"; set_color normal; end
 function __warn; set_color yellow; echo "!! $argv"; set_color normal; end
@@ -41,7 +41,7 @@ if not test -d $here/.git
     git -C $here commit -q -m "import existing dotfiles"
 end
 
-# Re-stow immediately so the live ~/.config/{fish,alacritty} symlinks are
+# Re-stow immediately so the live ~/.config/* symlinks are
 # in place before any new fish process can recreate fresh files.
 __log "Stowing migrated packages"
 set -l targets
@@ -51,7 +51,9 @@ for d in $packages
     end
 end
 if test (count $targets) -gt 0
-    stow --dir=$here --target=$HOME --restow $targets
+    # --no-folding for the same reason as install.fish: folded dir symlinks
+    # let fisher write plugin files back into the repo.
+    stow --no-folding --dir=$here --target=$HOME --restow $targets
     __log "Linked: $targets"
 end
 
