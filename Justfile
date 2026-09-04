@@ -69,12 +69,4 @@ unstick:
 # links per-package instead of mirroring the whole target dir.
 [doc("Symlink dotfiles/skills/* into ~/.claude/skills and ~/.codex/skills.")]
 link-skills:
-    #!/usr/bin/env fish
-    set -l here {{justfile_directory()}}
-    mkdir -p ~/.claude/skills ~/.codex/skills
-    for pkg in $here/skills/*/
-        set -l name (basename $pkg)
-        ln -sfn $pkg ~/.claude/skills/$name
-        ln -sfn $pkg ~/.codex/skills/$name
-        echo "linked $name"
-    end
+    fish ./link-skills.fish

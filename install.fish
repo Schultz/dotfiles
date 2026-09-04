@@ -175,6 +175,9 @@ else
     __warn "Nothing to stow yet — run 'just migrate' first"
 end
 
+__log "Linking shared skills"
+fish $here/link-skills.fish
+
 __log "Bootstrapping fisher (fish plugin manager)"
 # Note: do NOT run `fisher install jorgebucaran/fisher` here — that rewrites
 # fish_plugins to reflect only what's currently installed (just fisher),

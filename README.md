@@ -43,8 +43,12 @@ Edit either path. Same file.
 `packages.fish` works out which directories those are, so no list needs
 maintaining. A directory counts as a package when it holds at least one
 dotfile or dotdir, which is what mirroring `$HOME` means in practice.
-`skills/` holds neither, so it is left out, and `just link-skills` handles it
-instead.
+
+`skills/` is the one top-level directory stow does not handle. It is still
+part of the dotfiles and still tracked, it just does not belong under
+`~/.config`. Skills go to `~/.claude/skills/` and `~/.codex/skills/`, which
+`link-skills.fish` takes care of. `just install` runs it, so a fresh machine
+gets the skills without a separate step.
 
 Every stow call passes `--no-folding`. Without it stow folds. Once every file
 in `~/.config/fish/functions/` comes from this repo, stow throws away that
@@ -120,11 +124,14 @@ pull an existing config in on another machine.
 
 ## Skills (Claude Code + Codex, shared)
 
-`skills/<name>/SKILL.md` holds one canonical copy per skill. `just link-skills`
-symlinks each into `~/.claude/skills/` and `~/.codex/skills/`. It uses plain
-`ln -sfn` rather than stow, because both directories already hold real
-per-tool content and mirroring the whole target directory would conflict.
-Re-run it after adding a skill.
+`skills/<name>/SKILL.md` holds one canonical copy per skill.
+`link-skills.fish` symlinks each into `~/.claude/skills/` and
+`~/.codex/skills/`. It uses plain `ln -sfn` rather than stow, because both
+directories already hold real per-tool content and mirroring the whole target
+directory would conflict.
+
+`just install` runs it, so this happens on setup. Run `just link-skills`
+directly after adding a skill.
 
 ## When stow refuses to link
 
