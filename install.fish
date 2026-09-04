@@ -65,17 +65,28 @@ function __install_alacritty_dmg
         return 1
     end
 
-    set -l dmg (mktemp -d)/Alacritty-v$ver.dmg
-    set -l mnt /Volumes/Alacritty
+    set -l work (mktemp -d)
+    set -l dmg $work/Alacritty-v$ver.dmg
     if not curl -fsSLo $dmg "https://github.com/alacritty/alacritty/releases/download/v$ver/Alacritty-v$ver.dmg"
         __warn "alacritty: download failed"
+        rm -rf $work
         return 1
     end
 
-    hdiutil attach -quiet -nobrowse $dmg; or return 1
-    cp -R $mnt/Alacritty.app /Applications/
+    # Mount at an explicit path. Letting hdiutil pick means /Volumes/Alacritty,
+    # which macOS silently turns into "/Volumes/Alacritty 1" when a copy of the
+    # DMG is already mounted (easy to do by installing it by hand once). We
+    # would then copy from the stale volume and detach the wrong one.
+    set -l mnt $work/mnt
+    mkdir -p $mnt
+    if not hdiutil attach -quiet -nobrowse -readonly -mountpoint $mnt $dmg
+        __warn "alacritty: could not mount the disk image"
+        rm -rf $work
+        return 1
+    end
+    sudo cp -R $mnt/Alacritty.app /Applications/
     hdiutil detach -quiet $mnt
-    rm -f $dmg
+    rm -rf $work
 
     # The DMG is quarantined as a download and fails the Gatekeeper check that
     # got the cask disabled, so macOS refuses to open it. Clearing the
