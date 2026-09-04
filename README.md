@@ -3,7 +3,7 @@
 Stow-managed configs for fish, zellij, nvim and mise. Targets macOS and
 Debian/Ubuntu.
 
-## First time on this machine (the one that already has my configs)
+## Machine that already has my configs
 
 ```fish
 cd ~/dotfiles
@@ -23,7 +23,7 @@ just setup     # bootstrap + install
 
 ```fish
 just stow      # re-link after adding a file
-just plugins   # `fisher update` — sync fish plugins
+just plugins   # sync fish plugins with fisher update
 just doctor    # report which expected tools are missing
 just unstow    # remove symlinks
 ```
@@ -44,8 +44,8 @@ The `packages` variable at the top of `Justfile` holds the list. Names with no
 matching directory get skipped, so a package can be listed before it has been
 migrated.
 
-Every stow call passes `--no-folding`. Without it stow folds: once every file
-in `~/.config/fish/functions/` comes from this repo, stow throws away the
+Every stow call passes `--no-folding`. Without it stow folds. Once every file
+in `~/.config/fish/functions/` comes from this repo, stow throws away that
 directory and leaves a single symlink to the repo directory in its place.
 Fisher installs plugins by writing into that directory. The writes follow the
 symlink and the plugin files land in the repo. That is how roughly 90 plugin
@@ -109,13 +109,14 @@ should stay tracked.
 ## Skills (Claude Code + Codex, shared)
 
 `skills/<name>/SKILL.md` holds one canonical copy per skill. `just link-skills`
-symlinks each into both `~/.claude/skills/` and `~/.codex/skills/` (plain
-`ln -sfn`, not stow — those dirs already hold real per-tool content, so
-mirroring the whole target dir would conflict). Re-run it after adding a
-skill.
+symlinks each into `~/.claude/skills/` and `~/.codex/skills/`. It uses plain
+`ln -sfn` rather than stow, because both directories already hold real
+per-tool content and mirroring the whole target directory would conflict.
+Re-run it after adding a skill.
 
 ## When stow refuses to link
 
 "existing target is not a symlink" means a real file is sitting where a symlink
-belongs. If the file is regenerable, `just unstick` clears the usual suspects
-and re-stows. Otherwise move the real file into the repo and run `just stow`.
+belongs. If the file is regenerable, `just unstick` deletes `fish_plugins` and
+fisher's two `fisher.fish` copies, then re-stows. Otherwise move the real file
+into the repo and run `just stow`.
